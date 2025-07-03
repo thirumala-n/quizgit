@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enhanced Quiz</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      overflow: hidden;
+    }
+
+    .quiz-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+      overflow: hidden;
+      width: 100%;
+      max-width: 1200px;
+      height: 85vh;
+      max-height: 700px;
+      display: flex;
+      transition: all 0.3s ease;
+    }
+
+    .quiz-container.split-view {
+      max-width: 1400px;
+      height: 90vh;
+      max-height: 750px;
+    }
+
+    .quiz-section {
+      flex: 1;
+      padding: 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      overflow-y: auto;
+    }
+
+    .quiz-section.narrow {
+      flex: 0.6;
+    }
+
+    .explanation-panel {
+      flex: 0.4;
+      background: #f8f9fa;
+      padding: 25px;
+      border-left: 3px solid #667eea;
+      display: none;
+      animation: slideIn 0.3s ease;
+      overflow-y: auto;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .explanation-panel.show {
+      display: block;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-align: center;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .question-number {
+      background: #667eea;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .quiz-progress {
+      flex: 1;
+      margin: 0 15px;
+      background: #e9ecef;
+      height: 6px;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.4em;
+      line-height: 1.3;
+    }
+
+    .options-container {
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+
+    .option {
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      padding: 12px 18px;
+      margin: 8px 0;
+      width: 100%;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-color: #667eea;
+    }
+
+    .option.selected {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .option.correct {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+      border-color: #4CAF50;
+      animation: correctPulse 0.5s ease;
+    }
+
+    .option.wrong {
+      background: linear-gradient(45deg, #f44336, #d32f2f);
+      color: white;
+      border-color: #f44336;
+      animation: wrongShake 0.5s ease;
+    }
+
+    @keyframes correctPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .option-icon {
+      float: right;
+      font-size: 20px;
+      margin-left: 10px;
+    }
+
+    .timer-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    #timer {
+      font-size: 16px;
+      font-weight: bold;
+      color: #667eea;
+      background: #f8f9fa;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 2px solid #e9ecef;
+    }
+
+    #timer.warning {
+      color: #f44336;
+      border-color: #f44336;
+      animation: timerBlink 1s infinite;
+    }
+
+    @keyframes timerBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: bold;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 100px;
+    }
+
+    #start-btn {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      font-size: 18px;
+      padding: 18px 40px;
+    }
+
+    #start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    #next-btn {
+      background: linear-gradient(45deg, #4CAF50, #45a049);
+      color: white;
+    }
+
+    #next-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+    }
+
+    #stop-btn {
+      background: linear-gradient(45deg, #f44336, #d32f2f);
+      color: white;
+    }
+
+    #stop-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+    }
+
+    .explanation-panel h3 {
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.3em;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+
+    .explanation-content {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #555;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .correct-answer {
+      background: #e8f5e8;
+      color: #2e7d32;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .score-section {
+      text-align: center;
+      padding: 60px 40px;
+    }
+
+    .thank-you {
+      font-size: 2.5em;
+      color: #667eea;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+
+    .score-details {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 15px;
+      margin: 30px 0;
+      border: 2px solid #e9ecef;
+    }
+
+    .score-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 15px 0;
+      font-size: 18px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .score-item:last-child {
+      border-bottom: none;
+      font-weight: bold;
+      font-size: 20px;
+      color: #667eea;
+    }
+
+    .score-icon {
+      font-size: 24px;
+      margin-right: 10px;
+    }
+
+    #restart-btn {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      font-size: 18px;
+      padding: 18px 40px;
+      margin-top: 20px;
+    }
+
+    #restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    @media (max-width: 768px) {
+      .quiz-container {
+        flex-direction: column;
+        margin: 10px;
+        height: 95vh;
+      }
+      
+      .quiz-section {
+        padding: 15px;
+      }
+      
+      .explanation-panel {
+        padding: 15px;
+        border-left: none;
+        border-top: 3px solid #667eea;
+      }
+      
+      .question-header {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .quiz-progress {
+        margin: 0;
+      }
+
+      h2 {
+        font-size: 1.2em;
+      }
+
+      .option {
+        padding: 10px 15px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container" id="quiz-container">
+    <div class="quiz-section" id="quiz-section">
+      <div id="start-screen">
+        <h1>🎯 Enhanced Quiz Challenge</h1>
+        <p style="text-align: center; font-size: 18px; color: #666; margin-bottom: 30px;">
+          Test your knowledge with our interactive quiz. Answer questions within the time limit and learn from detailed explanations!
+        </p>
+        <div class="button-group">
+          <button id="start-btn">Start Quiz</button>
+        </div>
+      </div>
+
+      <div id="quiz-content" class="hidden">
+        <div class="question-header">
+          <div class="question-number" id="question-number">Question 1 of 24</div>
+          <div class="quiz-progress">
+            <div class="progress-bar" id="progress-bar"></div>
+          </div>
+        </div>
+
+        <h2 id="question">Question will appear here</h2>
+
+        <div class="options-container" id="options"></div>
+
+        <div class="timer-section">
+          <div id="timer">Time Left: 30s</div>
+        </div>
+
+        <div class="button-group">
+          <button id="next-btn" class="hidden">Next Question</button>
+          <button id="stop-btn">Stop Quiz</button>
+        </div>
+      </div>
+
+      <div id="score-screen" class="hidden">
+        <div class="score-section">
+          <div class="thank-you">🎉 Thank You!</div>
+          <p style="font-size: 18px; color: #666; margin-bottom: 30px;">
+            You've completed the quiz. Here are your results:
+          </p>
+          
+          <div class="score-details">
+            <div class="score-item">
+              <span><span class="score-icon">✅</span>Correct Answers</span>
+              <span id="correct-count">0</span>
+            </div>
+            <div class="score-item">
+              <span><span class="score-icon">❌</span>Wrong Answers</span>
+              <span id="wrong-count">0</span>
+            </div>
+            <div class="score-item">
+              <span><span class="score-icon">⏱️</span>Time Efficiency</span>
+              <span id="time-efficiency">0%</span>
+            </div>
+            <div class="score-item">
+              <span><span class="score-icon">🎯</span>Final Score</span>
+              <span id="final-score">0/24</span>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button id="restart-btn">Take Quiz Again</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="explanation-panel" id="explanation-panel">
+      <h3>📚 Explanation</h3>
+      <div class="correct-answer" id="correct-answer-text"></div>
+      <div class="explanation-content" id="explanation-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        question: "A snail is at the bottom of a 20-foot well. Each day it climbs up 3 feet and slips back 2 feet. How many days will it take to reach the top?",
+        options: ["20 days", "18 days", "10 days", "17 days"],
+        answer: 1,
+        explanation: "Each day, the snail gains 1 foot (3 - 2). In 17 days, it climbs 17 feet. On the 18th day, it climbs directly to 20 feet without slipping back."
+      },
+      {
+        question: "Sally's father is John's son. What is the relationship between Sally and John?",
+        options: ["Sister", "Daughter", "Granddaughter", "Cousin"],
+        answer: 2,
+        explanation: "John's son is Sally's father, so John is Sally's grandfather."
+      },
+      {
+        question: "Which number does not belong to the series: 2, 4, 6, 8, 10, 11, 12?",
+        options: ["10", "11", "12", "8"],
+        answer: 1,
+        explanation: "All numbers are even except 11."
+      },
+      {
+        question: "Which word does not belong to the group: Apple, Banana, Chair, Mango?",
+        options: ["Apple", "Banana", "Chair", "Mango"],
+        answer: 2,
+        explanation: "All others are fruits; Chair is an object."
+      },
+      {
+        question: "In a pie chart: 30% like football, 25% like basketball, and 45% like other sports. What percentage like football or basketball?",
+        options: ["75%", "60%", "55%", "45%"],
+        answer: 2,
+        explanation: "30% + 25% = 55% like either football or basketball."
+      },
+      {
+        question: "Product sales are A = $100, B = $200, C = $300. What is the average sales amount?",
+        options: ["$300", "$150", "$200", "$250"],
+        answer: 2,
+        explanation: "(100 + 200 + 300) ÷ 3 = $200"
+      },
+      {
+        question: "Which data structure follows the First-In-First-Out (FIFO) principle?",
+        options: ["Stack", "Queue", "Graph", "Tree"],
+        answer: 1,
+        explanation: "Queue processes elements in the order they arrive (FIFO)."
+      },
+      {
+        question: "What is the time complexity of searching in a hash table?",
+        options: ["O(1)", "O(log n)", "O(n)", "O(n log n)"],
+        answer: 0,
+        explanation: "Hash tables provide constant-time access in the best case."
+      },
+      {
+        question: "Which data structure follows Last-In-First-Out (LIFO)?",
+        options: ["Queue", "Stack", "Tree", "Graph"],
+        answer: 1,
+        explanation: "Stack removes the most recently added element first."
+      },
+      {
+        question: "What is the primary purpose of a heap data structure?",
+        options: ["Store sorted data", "Implement recursion", "Extract min/max efficiently", "Store graphs"],
+        answer: 2,
+        explanation: "Heaps are used in priority queues for efficient min/max operations."
+      },
+      {
+        question: "What makes a good algorithm?",
+        options: ["Correctness, Efficiency, Readability", "Speed, Accuracy, Cost", "Scalability, Complexity", "All of the above"],
+        answer: 0,
+        explanation: "These are the three key pillars of a good algorithm."
+      },
+      {
+        question: "What is an algorithm?",
+        options: ["A programming language", "A step-by-step procedure", "A software tool", "A hardware component"],
+        answer: 1,
+        explanation: "An algorithm is a method to solve a problem logically."
+      },
+      {
+        question: "Which are sorting algorithms?",
+        options: ["Bubble, Selection", "Bubble, Search", "Search, Selection", "Graph algorithms"],
+        answer: 0,
+        explanation: "Both are basic sorting techniques."
+      },
+      {
+        question: "Which are searching algorithms?",
+        options: ["Quick, Bubble", "Linear, Binary", "Selection, Insertion", "Merge, Bubble"],
+        answer: 1,
+        explanation: "These are used to find elements in datasets."
+      },
+      {
+        question: "How do Google and Facebook transmit live video?",
+        options: ["Sorting algorithms", "Graph algorithms", "Audio & Video compression algorithms", "Searching algorithms"],
+        answer: 2,
+        explanation: "Compression reduces data for real-time transmission."
+      },
+      {
+        question: "Which algorithm is used for shortest path in Google Maps?",
+        options: ["Dijkstra's Algorithm", "Bubble sort", "Linear search", "Stack"],
+        answer: 0,
+        explanation: "Dijkstra is a popular algorithm for shortest path problems."
+      },
+      {
+        question: "What does CEO stand for?",
+        options: ["Chief Executive Officer", "Chief Operating Officer", "Chief Financial Officer", "Chief Innovation Officer"],
+        answer: 0,
+        explanation: "The CEO is the highest-ranking executive in a company."
+      },
+      {
+        question: "What is a key responsibility of a CEO?",
+        options: ["IT support", "Marketing", "Setting company vision", "Employee training"],
+        answer: 2,
+        explanation: "The CEO defines goals and vision of the company."
+      },
+      {
+        question: "Who is the current CEO of Oracle?",
+        options: ["Larry Ellison", "Safra Catz", "Sundar Pichai", "Satya Nadella"],
+        answer: 1,
+        explanation: "Safra Catz has been the CEO of Oracle since 2014."
+      },
+      {
+        question: "Who is the CEO of Accenture?",
+        options: ["Julie Sweet", "Pierre Nanterme", "David Rowland", "Mark Foster"],
+        answer: 0,
+        explanation: "Julie Sweet is the current CEO of Accenture."
+      },
+      {
+        question: "Which is a type of machine learning?",
+        options: ["Deep Learning", "NLP", "Computer Vision", "All of the above"],
+        answer: 3,
+        explanation: "All listed items are branches of ML/AI."
+      },
+      {
+        question: "What is the term for a computer program that understands and generates human-like text?",
+        options: ["Chatbot", "Language Model", "Virtual Assistant", "All of the above"],
+        answer: 3,
+        explanation: "All are AI systems that process human language."
+      },
+      {
+        question: "Which AI application is used to detect and recognize objects in images/videos?",
+        options: ["NLP", "Computer Vision", "Machine Learning", "Robotics"],
+        answer: 1,
+        explanation: "Computer vision processes and interprets visual data."
+      },
+      {
+        question: "What is the term for AI that learns from data without being explicitly programmed?",
+        options: ["Supervised learning", "Unsupervised learning", "Reinforcement learning", "Machine Learning"],
+        answer: 3,
+        explanation: "ML is a broad term for systems that learn from data."
+      }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 30;
+    let selected = false;
+    let totalTimeSpent = 0;
+    let questionStartTime = 0;
+
+    const elements = {
+      startBtn: document.getElementById("start-btn"),
+      quizContainer: document.getElementById("quiz-container"),
+      quizSection: document.getElementById("quiz-section"),
+      startScreen: document.getElementById("start-screen"),
+      quizContent: document.getElementById("quiz-content"),
+      scoreScreen: document.getElementById("score-screen"),
+      questionNumber: document.getElementById("question-number"),
+      progressBar: document.getElementById("progress-bar"),
+      questionEl: document.getElementById("question"),
+      optionsEl: document.getElementById("options"),
+      timerEl: document.getElementById("timer"),
+      nextBtn: document.getElementById("next-btn"),
+      stopBtn: document.getElementById("stop-btn"),
+      explanationPanel: document.getElementById("explanation-panel"),
+      correctAnswerText: document.getElementById("correct-answer-text"),
+      explanationContent: document.getElementById("explanation-content"),
+      correctCount: document.getElementById("correct-count"),
+      wrongCount: document.getElementById("wrong-count"),
+      timeEfficiency: document.getElementById("time-efficiency"),
+      finalScore: document.getElementById("final-score"),
+      restartBtn: document.getElementById("restart-btn")
+    };
+
+    elements.startBtn.onclick = startQuiz;
+    elements.nextBtn.onclick = nextQuestion;
+    elements.stopBtn.onclick = stopQuiz;
+    elements.restartBtn.onclick = restartQuiz;
+
+    function startQuiz() {
+      if (questions.length === 0) {
+        alert("No questions available. Please add questions to the quiz.");
+        return;
+      }
+      elements.startScreen.classList.add("hidden");
+      elements.quizContent.classList.remove("hidden");
+      showQuestion();
+    }
+
+    function showQuestion() {
+      selected = false;
+      questionStartTime = Date.now();
+      elements.nextBtn.classList.add("hidden");
+      elements.explanationPanel.classList.remove("show");
+      elements.quizContainer.classList.remove("split-view");
+      elements.quizSection.classList.remove("narrow");
+
+      const q = questions[currentQuestion];
+      elements.questionNumber.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+      elements.progressBar.style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+      elements.questionEl.textContent = q.question;
+      elements.optionsEl.innerHTML = "";
+
+      q.options.forEach((option, index) => {
+        const btn = document.createElement("button");
+        btn.className = "option";
+        btn.textContent = option;
+        btn.onclick = () => selectAnswer(btn, index);
+        elements.optionsEl.appendChild(btn);
+      });
+
+      startTimer();
+    }
+
+    function startTimer() {
+      timeLeft = 30;
+      elements.timerEl.textContent = `Time Left: ${timeLeft}s`;
+      elements.timerEl.classList.remove("warning");
+      
+      timer = setInterval(() => {
+        timeLeft--;
+        elements.timerEl.textContent = `Time Left: ${timeLeft}s`;
+        
+        if (timeLeft <= 5) {
+          elements.timerEl.classList.add("warning");
+        }
+        
+        if (timeLeft === 0) {
+          clearInterval(timer);
+          if (!selected) {
+            showAnswer(-1);
+          }
+        }
+      }, 1000);
+    }
+
+    function selectAnswer(button, selectedIndex) {
+      if (selected) return;
+      selected = true;
+      clearInterval(timer);
+      
+      const timeSpent = Math.round((Date.now() - questionStartTime) / 1000);
+      totalTimeSpent += timeSpent;
+      
+      showAnswer(selectedIndex);
+    }
+
+    function showAnswer(selectedIndex) {
+      const correctIndex = questions[currentQuestion].answer;
+      const buttons = document.querySelectorAll(".option");
+      
+      buttons.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === correctIndex) {
+          btn.classList.add("correct");
+          btn.innerHTML += `<span class="option-icon">✅</span>`;
+        } else {
+          btn.classList.add("wrong");
+          btn.innerHTML += `<span class="option-icon">❌</span>`;
+        }
+      });
+
+      if (selectedIndex === correctIndex) {
+        score++;
+      }
+
+      showExplanation();
+      elements.nextBtn.classList.remove("hidden");
+    }
+
+    function showExplanation() {
+      const q = questions[currentQuestion];
+      elements.correctAnswerText.textContent = `Correct Answer: ${q.options[q.answer]}`;
+      elements.explanationContent.textContent = q.explanation;
+      
+      elements.explanationPanel.classList.add("show");
+      elements.quizContainer.classList.add("split-view");
+      elements.quizSection.classList.add("narrow");
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion < questions.length) {
+        showQuestion();
+      } else {
+        showFinalScore();
+      }
+    }
+
+    function stopQuiz() {
+      if (confirm("Are you sure you want to stop the quiz? Your progress will be lost.")) {
+        clearInterval(timer);
+        showFinalScore();
+      }
+    }
+
+    function showFinalScore() {
+      elements.quizContent.classList.add("hidden");
+      elements.scoreScreen.classList.remove("hidden");
+      elements.explanationPanel.classList.remove("show");
+      elements.quizContainer.classList.remove("split-view");
+      elements.quizSection.classList.remove("narrow");
+
+      const totalQuestions = currentQuestion === questions.length ? questions.length : currentQuestion;
+      const wrongAnswers = totalQuestions - score;
+      const maxTimeForAllQuestions = totalQuestions * 30;
+      const timeEfficiencyPercent = Math.round(((maxTimeForAllQuestions - totalTimeSpent) / maxTimeForAllQuestions) * 100);
+
+      elements.correctCount.textContent = score;
+      elements.wrongCount.textContent = wrongAnswers;
+      elements.timeEfficiency.textContent = `${Math.max(0, timeEfficiencyPercent)}%`;
+      elements.finalScore.textContent = `${score}/${totalQuestions}`;
+    }
+
+    function restartQuiz() {
+      currentQuestion = 0;
+      score = 0;
+      totalTimeSpent = 0;
+      selected = false;
+      clearInterval(timer);
+      
+      elements.scoreScreen.classList.add("hidden");
+      elements.startScreen.classList.remove("hidden");
+      elements.explanationPanel.classList.remove("show");
+      elements.quizContainer.classList.remove("split-view");
+      elements.quizSection.classList.remove("narrow");
+    }
+  </script>
+</body>
+</html>
